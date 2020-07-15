@@ -1,0 +1,54 @@
+/**
+ * Welcome to Eclipse Mita.
+ *
+ * Not sure what to do now?
+ * Check out the "Getting started" guide on https://mita.io.
+ */
+
+package main;
+import platforms.xdk110;
+
+setup net: WLAN{
+	
+	ssid = "SSID";
+	authentication = Personal(psk= "PASSWORD");
+}
+
+setup backend: MQTT{
+	
+	transport = net;
+	url = "mqtt://ip_address:port";
+	clientId = "client01";
+	var telemetry = topic(name="topic/sensors");
+}
+
+
+struct EnvData{
+	
+	var temp : double;
+	var humi : double;
+	var pres : double;
+	var inten : double;
+}
+
+fn toJSON(data : EnvData){
+	
+	return `{"temp": ${data.temp}, "humi": ${data.humi}, "pres" : ${data.pres}, "inten" : ${data.inten}}`;
+	
+}
+
+setup light{
+	
+	manual_mode = false;
+}
+
+every 5 seconds{
+	
+	var temperature : double = environment.temperature.read()/1000.0;
+	var humidity  = environment.humidity.read();
+	var pressure : double = environment.pressure.read()/10.0;
+	var intensity : double = light.intensity.read()/1000.00;
+	
+	let environmentState = EnvData(temp = temperature , humi = humidity, pres = pressure, inten = intensity);
+	backend.telemetry.write(toJSON(environmentState));
+}
